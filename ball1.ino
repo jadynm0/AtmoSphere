@@ -21,19 +21,34 @@ void setup() {
 }
 
 void loop() {
-  // Use the sensor variable to read the pin
   int sensorValue = analogRead(sensorPin); 
-  
-  // Print the raw value so you can see if it changes
   Serial.print("Sensor Value: ");
   Serial.println(sensorValue); 
-  
-  int brightness = map(sensorValue, 25, 75, 0, 255); 
-  brightness = constrain(brightness, 0, 255);
-  
-  // Apply the brightness to the Red LED
+
+  int brightness = 0;
+
+  // Define clear states based on your 20-80 range
+  if (sensorValue < 30) {
+    brightness = 0;    // State 1: Dark / Off
+    Serial.println("State: OFF");
+  } 
+  else if (sensorValue < 50) {
+    brightness = 64;   // State 2: Dim Glow (25% power)
+    Serial.println("State: DIM");
+  } 
+  else if (sensorValue < 70) {
+    brightness = 150;  // State 3: Warm Glow (60% power)
+    Serial.println("State: WARM");
+  } 
+  else {
+    brightness = 255;  // State 4: Full Brightness (100% power)
+    Serial.println("State: BRIGHT");
+  }
+
+  // Apply the stepped brightness to the Red LED
   analogWrite(ledPin, brightness); 
 
+  // Send the raw data to the Mac so Ball 2 stays in sync
   if (WiFi.status() == WL_CONNECTED) {
     WiFiClient client;
     HTTPClient http;
