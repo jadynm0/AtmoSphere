@@ -1,31 +1,46 @@
-#include <Adafruit_NeoPixel.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 
-#define LED_PIN    2   // Pin D4
-#define SENSOR_PIN A0  // Analog Light Sensor
-#define NUM_LEDS   10 
+const char* ssid = "tamimas iphone";
+const char* password = "12345678";
+const char* serverIp = "172.20.10.9"; 
 
-Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+const int ledPin = 2;    // Pin D4 (GPIO 2)
+const int sensorPin = A0; // Defined sensor variable
 
 void setup() {
-  Serial.begin(115200); // Start communication with your Mac
-  strip.begin();
-  strip.show();
+  Serial.begin(115200); // Start serial for debugging
+  pinMode(ledPin, OUTPUT);
+  
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { 
+    delay(500); 
+    Serial.print("."); 
+  }
+  Serial.println("\nWiFi Connected!");
 }
 
 void loop() {
-  int lightValue = analogRead(SENSOR_PIN); // Read the room brightness
-  Serial.print("Light Level: ");
-  Serial.println(lightValue);
+  // Use the sensor variable to read the pin
+  int sensorValue = analogRead(sensorPin); 
+  
+  // Print the raw value so you can see if it changes
+  Serial.print("Sensor Value: ");
+  Serial.println(sensorValue); 
+  
+  int brightness = map(sensorValue, 25, 75, 0, 255); 
+  brightness = constrain(brightness, 0, 255);
+  
+  // Apply the brightness to the Red LED
+  analogWrite(ledPin, brightness); 
 
-  // If it's dark (tweak this number based on your room)
-  if (lightValue < 500) {
-    for(int i=0; i<NUM_LEDS; i++) {
-      strip.setPixelColor(i, strip.Color(255, 100, 0)); // Sunset Orange
-    }
-  } else {
-    strip.clear(); // Turn off if it's bright
+  if (WiFi.status() == WL_CONNECTED) {
+    WiFiClient client;
+    HTTPClient http;
+    String url = "http://" + String(serverIp) + ":5000/update?l=" + String(sensorValue);
+    http.begin(client, url);
+    http.GET();
+    http.end();
   }
-
-  strip.show();
-  delay(100);
+  delay(500);
 }
