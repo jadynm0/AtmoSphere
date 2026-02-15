@@ -43,7 +43,6 @@ void loop() {
     WiFiClient client;
     HTTPClient http;
     
-    // Request data from the Python server
     String url = "http://" + String(serverIp) + ":5000/get_light";
     http.begin(client, url);
     
@@ -51,28 +50,42 @@ void loop() {
 
     if (httpCode == 200) {
       String payload = http.getString();
-      
-      // Parse JSON: {"light": 45}
       int start = payload.indexOf(":") + 1;
       int end = payload.indexOf("}");
-      String val = payload.substring(start, end);
-      val.trim();
+      int remoteLightValue = payload.substring(start, end).toInt();
 
-      int remoteLightValue = val.toInt();
+      int brightness = 0;
+      String stateName = "";
+
+      // --- MATCHING THE BALL 1 STATES ---
+      if (remoteLightValue < 30) {
+        brightness = 0;
+        stateName = "OFF  "; // Spaces clear old text
+      } 
+      else if (remoteLightValue < 50) {
+        brightness = 64;  // 25% Power
+        stateName = "DIM  ";
+      } 
+      else if (remoteLightValue < 70) {
+        brightness = 150; // 60% Power
+        stateName = "WARM ";
+      } 
+      else {
+        brightness = 255; // 100% Power
+        stateName = "BRIGHT";
+      }
 
       // --- UPDATE LCD ---
       lcd.setCursor(0, 0);
-      lcd.print("Toronto Light: ");
+      lcd.print("Toronto: ");
+      lcd.print(stateName); 
+      
       lcd.setCursor(0, 1);
+      lcd.print("Value: ");
       lcd.print(remoteLightValue);
-      lcd.print(" units    "); 
+      lcd.print("     "); // Extra spaces to prevent "ghost" digits
 
-      // --- BRIGHTNESS MATH ---
-      // Matching Ball 1's range (25 to 75)
-      int brightness = map(remoteLightValue, 25, 75, 0, 255);
-      brightness = constrain(brightness, 0, 255);
-
-      // Apply to Red LED
+      // --- APPLY TO RED LED ---
       analogWrite(ledPin, brightness);
 
     } else {
@@ -85,5 +98,5 @@ void loop() {
     WiFi.begin(ssid, password);
   }
   
-  delay(1000); // Sync every second
+  delay(1000); 
 }
